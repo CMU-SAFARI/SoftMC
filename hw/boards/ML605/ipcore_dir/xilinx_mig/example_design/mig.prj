@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project NoOfControllers="1" >
+    <ModuleName>xilinx_mig</ModuleName>
+    <dci_inouts_inputs>1</dci_inouts_inputs>
+    <dci_outputs>0</dci_outputs>
+    <Debug_En>OFF</Debug_En>
+    <TargetFPGA>xc6vlx240t-ff1156/-1</TargetFPGA>
+    <Version>3.92</Version>
+    <SystemClock>Differential</SystemClock>
+    <PinSelectionFlag>FALSE</PinSelectionFlag>
+    <IODelayHighPerformanceMode>HIGH</IODelayHighPerformanceMode>
+    <InternalVref>0</InternalVref>
+    <Controller number="0" >
+        <MemoryDevice>DDR3_SDRAM/SODIMMs/MT4JSF6464HY-1G1</MemoryDevice>
+        <TimePeriod>2500</TimePeriod>
+        <DataWidth>64</DataWidth>
+        <DeepMemory>1</DeepMemory>
+        <DataMask>1</DataMask>
+        <CustomPart>FALSE</CustomPart>
+        <NewPartName></NewPartName>
+        <RowAddress>13</RowAddress>
+        <ColAddress>10</ColAddress>
+        <BankAddress>3</BankAddress>
+        <TimingParameters>
+            <Parameters twtr="7.5" trrd="10" trefi="7.8" tfaw="37.5" trtp="7.5" trfc="110" trp="13.13" tras="37.5" trcd="13.13" />
+        </TimingParameters>
+        <ECC>Disabled</ECC>
+        <DiscreteBankSelections>1</DiscreteBankSelections>
+        <CaptureClock>25</CaptureClock>
+        <UserMemoryAddressMap>ROW_BANK_COLUMN</UserMemoryAddressMap>
+        <Ordering>Normal</Ordering>
+        <BankSelection>
+            <Bank SysClk="0" Data="0" name="25" Address="1" wasso="40" />
+            <Bank SysClk="0" Data="1" name="26" Address="0" wasso="40" />
+            <Bank SysClk="1" Data="0" name="34" Address="0" wasso="40" />
+            <Bank SysClk="0" Data="1" name="35" Address="0" wasso="40" />
+            <Bank SysClk="0" Data="1" name="36" Address="0" wasso="40" />
+        </BankSelection>
+        <mrBurstLength name="Burst Length" >8 - Fixed</mrBurstLength>
+        <mrBurstType name="Read Burst Type" >Sequential</mrBurstType>
+        <mrCasLatency name="CAS Latency" >6</mrCasLatency>
+        <mrMode name="Mode" >Normal</mrMode>
+        <mrDllReset name="DLL Reset" >No</mrDllReset>
+        <mrPdMode name="DLL control for precharge PD" >Slow Exit</mrPdMode>
+        <emrDllEnable name="DLL Enable" >Enable</emrDllEnable>
+        <emrOutputDriveStrength name="Output Driver Impedance Control" >RZQ/7</emrOutputDriveStrength>
+        <emrRTT name="RTT (nominal) - On Die Termination (ODT)" >RZQ/4</emrRTT>
+        <emrPosted name="Additive Latency (AL)" >0</emrPosted>
+        <emrOCD name="Write Leveling Enable" >Disabled</emrOCD>
+        <emrDQS name="TDQS enable" >Enabled</emrDQS>
+        <emrRDQS name="Qoff" >Output Buffer Enabled</emrRDQS>
+        <mr2PartialArraySelfRefresh name="Partial-Array Self Refresh" >Full Array</mr2PartialArraySelfRefresh>
+        <mr2CasWriteLatency name="CAS write latency" >5</mr2CasWriteLatency>
+        <mr2AutoSelfRefresh name="Auto Self Refresh" >Enabled</mr2AutoSelfRefresh>
+        <mr2SelfRefreshTempRange name="High Temparature Self Refresh Rate" >Normal</mr2SelfRefreshTempRange>
+        <mr2RTTWR name="RTT_WR - Dynamic On Die Termination (ODT)" >Dynamic ODT off</mr2RTTWR>
+        <PortInterface>NATIVE</PortInterface>
+    </Controller>
+</Project>

@@ -1,0 +1,26 @@
+--- ipcore_dir/xilinx_mig/user_design/rtl/phy/phy_top.v	2017-02-03 15:11:19.000000000 +0100
+@@ -93,1 +93,1 @@
+-   parameter BANK_WIDTH      = 2,       // # of bank bits
++   parameter BANK_WIDTH      = 3,       // # of bank bits
+@@ -103,1 +103,1 @@
+-   parameter ROW_WIDTH       = 14,      // DRAM address bus width
++   parameter ROW_WIDTH       = 16,      // DRAM address bus width
+@@ -124,1 +124,1 @@
+-   parameter REG_CTRL        = "ON",    // "ON" for registered DIMM
++   parameter REG_CTRL        = "OFF",    // "ON" for registered DIMM
+@@ -194,3 +194,7 @@
+    input                              dfi_rddata_en,
++   input                              dfi_rddata_en_even,
++   input                              dfi_rddata_en_odd,
+    output [4*DQ_WIDTH-1:0]            dfi_rddata,
+    output                             dfi_rddata_valid,
++   output                             dfi_rddata_valid_even,
++   output                             dfi_rddata_valid_odd,
+@@ -1100,3 +1104,7 @@
+        .dfi_rddata_en        (dfi_rddata_en),
++       .dfi_rddata_en_even   (dfi_rddata_en_even),
++       .dfi_rddata_en_odd    (dfi_rddata_en_odd),
+        .phy_rddata_en        (phy_rddata_en),
+        .dfi_rddata_valid     (dfi_rddata_valid),
++       .dfi_rddata_valid_even(dfi_rddata_valid_even),
++       .dfi_rddata_valid_odd (dfi_rddata_valid_odd),

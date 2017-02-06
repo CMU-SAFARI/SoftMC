@@ -1,0 +1,48 @@
+--- ipcore_dir/xilinx_mig/user_design/rtl/phy/phy_rdctrl_sync.v	2017-02-03 15:11:19.000000000 +0100
+@@ -91,4 +91,8 @@
+    input                      dfi_rddata_en,
++   input                      dfi_rddata_en_even,
++   input                      dfi_rddata_en_odd,
+    input                      phy_rddata_en,
+    // Control for read logic, initialization logic
+    output reg                 dfi_rddata_valid,
++   output reg                 dfi_rddata_valid_even,
++   output reg                 dfi_rddata_valid_odd,
+@@ -113,3 +117,7 @@
+   wire                     rddata_en;
++  wire                     rddata_en_even;
++  wire                     rddata_en_odd;
+   wire                     rddata_en_rsync;
+   wire                     rddata_en_srl_out;
++  wire                     rddata_en_srl_out_even;
++  wire                     rddata_en_srl_out_odd;
+@@ -124,1 +132,3 @@
+   assign rddata_en = (mc_data_sel) ? dfi_rddata_en : phy_rddata_en;
++  assign rddata_en_even = (mc_data_sel) ? dfi_rddata_en_even : phy_rddata_en;
++  assign rddata_en_odd = (mc_data_sel) ? dfi_rddata_en_odd : phy_rddata_en;
+@@ -136,1 +146,21 @@
+ 
++  SRLC32E u_rddata_en_srl_even
++    (
++     .Q   (rddata_en_srl_out_even),
++     .Q31 (),
++     .A   (rd_active_dly),
++     .CE  (1'b1),
++     .CLK (clk),
++     .D   (rddata_en_even)
++     );
++
++  SRLC32E u_rddata_en_srl_odd
++    (
++     .Q   (rddata_en_srl_out_odd),
++     .Q31 (),
++     .A   (rd_active_dly),
++     .CE  (1'b1),
++     .CLK (clk),
++     .D   (rddata_en_odd)
++     );
++
+@@ -140,1 +170,3 @@
+     dfi_rddata_valid <= #TCQ rddata_en_srl_out & mc_data_sel;
++    dfi_rddata_valid_even <= #TCQ rddata_en_srl_out_even & mc_data_sel;
++    dfi_rddata_valid_odd <= #TCQ rddata_en_srl_out_odd & mc_data_sel;

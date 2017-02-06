@@ -1,0 +1,7 @@
+--- ipcore_dir/xilinx_mig/user_design/rtl/ip_top/iodelay_ctrl.v
+@@ -94,1 +94,2 @@
+    input  sys_rst,
++   output clk_200,         // single 200MHz clock for ML605
+@@ -161,1 +162,2 @@
+     );
++ assign clk_200 = clk_ref_bufg; // ML605 single 200MHz clock source
