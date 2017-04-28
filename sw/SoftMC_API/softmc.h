@@ -8,6 +8,15 @@
 #include <sys/time.h>
 #include <riffa.h>
 
+
+//ERROR CODES
+#define SOFTMC_SUCCESS 0
+#define SOFTMC_ERR -1
+#define SOFTMC_NO_PLATFORM -2
+#define SOFTMC_ERR_OPEN_FPGA -3
+#define SOFTMC_NO_SUCH_FPGA -4
+
+
 #define GET_TIME_INIT(num) struct timeval _timers[num]
 
 #define GET_TIME_VAL(num) gettimeofday(&_timers[num], NULL)
@@ -28,9 +37,12 @@
 // TODO: modify the hardware to support 32-bit instructions.
 #define INSTR_SIZE 2 //2 words
 
+//Default DRAM configuration
 #define NUM_ROWS 32768
 #define NUM_COLS 1024
 #define NUM_BANKS 8
+
+using namespace std;
 
 typedef uint64_t Instruction;
 typedef uint32_t uint;
@@ -76,13 +88,35 @@ class InstructionSequence{
 		InstructionSequence();
 		InstructionSequence(const uint capacity);
 		virtual ~InstructionSequence();
+        void empty(); //empties the InstructionSequence
 
-		void insert(const Instruction c);
-		void execute(fpga_t* fpga);
+		void execute();
+
+        void genACT(uint bank, uint row); 
+        
+        void genPRE(uint bank, PRE_TYPE pt = PRE_TYPE::SINGLE);
+        
+        void genWR(uint bank, uint col, uint8_t pattern,
+                AUTO_PRECHARGE ap = AUTO_PRECHARGE::NO_AP, BURST_LENGTH bl
+                = BURST_LENGTH::FIXED); 
+        
+        void genRD(uint bank, uint col, AUTO_PRECHARGE ap =
+                AUTO_PRECHARGE::NO_AP, BURST_LENGTH bl =
+                BURST_LENGTH::FIXED); 
+        
+        void genWAIT(uint cycles); 
+        void genBUSDIR(BUSDIR dir); 
+        void genEND();
+        void genZQ(); 
+        void genREF(); 
+        void genREF_CONFIG(uint val, REGISTER r);
+
 
 		uint size;
 		Instruction* instrs;
+
 	private:
+		void insert(const Instruction c);
 		uint capacity;
 		const static uint init_cap = 256;
 };
@@ -98,16 +132,23 @@ class DramAddr{
 		DramAddr(uint row, uint bank){ this->row = row; this->bank = bank;}
 };
 
-Instruction genACT(uint bank, uint row);
-Instruction genPRE(uint bank, PRE_TYPE pt = PRE_TYPE::SINGLE);
-Instruction genWR(uint bank, uint col, uint8_t pattern, AUTO_PRECHARGE ap = AUTO_PRECHARGE::NO_AP, BURST_LENGTH bl = BURST_LENGTH::FIXED);
-Instruction genRD(uint bank, uint col, AUTO_PRECHARGE ap = AUTO_PRECHARGE::NO_AP, BURST_LENGTH bl = BURST_LENGTH::FIXED);
-Instruction genWAIT(uint cycles);
-Instruction genBUSDIR(BUSDIR dir);
-Instruction genEND();
-Instruction genZQ();
-Instruction genREF();
-Instruction genREF_CONFIG(uint val, REGISTER r);
+
+
+class SoftMCPlatform{
+
+    public:
+    static fpga_t* current_fpga;
+
+
+    SoftMCPlatform();
+    ~SoftMCPlatform();
+    int init();
+    int switchFPGA(const uint fpga_index);
+    int reset();
+    static int receiveData(void* dst_buf, int num_words, long long timeout);
+
+    vector<fpga_t*> open_fpgas;
+};
 
 
 #endif //SOFTMC_H

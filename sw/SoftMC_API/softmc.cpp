@@ -18,6 +18,10 @@ InstructionSequence::~InstructionSequence(){
 	delete[] instrs;
 }
 
+void InstructionSequence::empty(){
+    size = 0;
+}
+
 void InstructionSequence::insert(const Instruction c){
 	if(size == capacity){
 		Instruction* tmp = new Instruction[capacity*2];
@@ -33,17 +37,17 @@ void InstructionSequence::insert(const Instruction c){
 	instrs[size++] = c;
 }
 
-void InstructionSequence::execute(fpga_t* fpga){
-	fpga_send(fpga, 0, (void*)instrs, INSTR_SIZE*size, 0, 1, 0);
+void InstructionSequence::execute(){
+	fpga_send(SoftMCPlatform::current_fpga, 0, (void*)instrs, INSTR_SIZE*size, 0, 1, 0);
 }
 
 //! Generates an instruction to \b activate the row at the given address.
 /*!
   \param \e bank is the bank number.
   \param \e row is the row number.
-  \return The generated activate instruction
+  \return Nothing.
 */
-Instruction genACT(uint bank, uint row){
+void InstructionSequence::genACT(uint bank, uint row){
 	Instruction instr = (uint)INSTR_TYPE::DDR;
 	instr <<= 32 - CMD_OFFSET - BANK_OFFSET - ROW_OFFSET;
 	instr |= 0x23; //sets CKE(1) CS(0) RAS(0) CAS(1) WE_ACT(1)
@@ -51,8 +55,8 @@ Instruction genACT(uint bank, uint row){
 	instr |= bank;
 	instr <<= ROW_OFFSET;
 	instr |= row;
-		
-	return instr;
+
+    insert(instr);
 }
 
 //! Generates an instruction to \b precharge the given bank.
@@ -61,9 +65,9 @@ Instruction genACT(uint bank, uint row){
   \param \e pc is the precharge type with default value PRE_TYPE.SINGLE.
 Can be \e PRE_TYPE.SINGLE for a single-bank precharge, or \e PRE_TYPE.ALL 
 for an all-banks precharge).
-  \return The generated precharge instruction
+  \return Nothing.
 */
-Instruction genPRE(uint bank, PRE_TYPE pc){
+void InstructionSequence::genPRE(uint bank, PRE_TYPE pc){
 	Instruction instr = (uint)INSTR_TYPE::DDR;
 	instr <<= 32 - CMD_OFFSET - BANK_OFFSET - ROW_OFFSET;
 	instr |= 0x22; //to set CKE(1) CS(0) RAS(0) CAS(1) WE_PRE(0)
@@ -78,7 +82,7 @@ Instruction genPRE(uint bank, PRE_TYPE pc){
 		instr <<= ROW_OFFSET;
 	}
 
-	return instr;
+	insert(instr);
 }
 
 //! Generates an instruction to \b write a single byte pattern to the given bank/column address.
@@ -93,9 +97,10 @@ Instruction genPRE(uint bank, PRE_TYPE pc){
  Can be \e BURST_LENGTH.FIXED to set burst length to 8, or BURST_LENGTH.CHOP
  to set 4. Do not forget to set MR0 appropriately to enable
  setting the burst length on-the-fly
-  \return The generated write instruction
+  \return Nothing
 */
-Instruction genWR(uint bank, uint col, uint8_t pattern, AUTO_PRECHARGE ap, BURST_LENGTH bl){
+void InstructionSequence::genWR(uint bank, uint col, uint8_t pattern, 
+                                    AUTO_PRECHARGE ap, BURST_LENGTH bl){
 	Instruction instr = (uint)INSTR_TYPE::DDR;
 	instr <<= 32 - SIGNAL_OFFSET - BANK_OFFSET - ROW_OFFSET - CMD_OFFSET;
 
@@ -124,7 +129,7 @@ Instruction genWR(uint bank, uint col, uint8_t pattern, AUTO_PRECHARGE ap, BURST
 	instr <<= COL_OFFSET;
 	instr |= col;
 
-	return instr;
+	insert(instr);
 }
 
 
@@ -139,9 +144,9 @@ Instruction genWR(uint bank, uint col, uint8_t pattern, AUTO_PRECHARGE ap, BURST
  Can be \e BURST_LENGTH.FIXED to set burst length to 8, or BURST_LENGTH.CHOP
  to set burst length to 4. Do not forget to set MR0 appropriately to enable
  setting the burst length on-the-fly. 
-  \return The generated read instruction
+  \return Nothing.
 */
-Instruction genRD(uint bank, uint col, AUTO_PRECHARGE ap, BURST_LENGTH bl){
+void InstructionSequence::genRD(uint bank, uint col, AUTO_PRECHARGE ap, BURST_LENGTH bl){
 	Instruction instr = 0x25; //to set CKE(1) CS(0)[assumed it should be Low] RAS(1) CAS(0) WE(1)
 	
 	instr <<= BANK_OFFSET;
@@ -165,16 +170,16 @@ Instruction genRD(uint bank, uint col, AUTO_PRECHARGE ap, BURST_LENGTH bl){
 
 	instr2 |= instr;
 
-	return instr2;
+	insert(instr2);
 }
 
 //! Generates a \b wait instruction to pause issuing commands for the given
 //cycle count.
 /*!
   \param \e cycles is the column number.
-  \return The generated wait instruction
+  \return Nothing.
 */
-Instruction genWAIT(uint cycles){ //min 1, max 1023
+void InstructionSequence::genWAIT(uint cycles){ //min 1, max 1023
 	assert(cycles >= 1);
 	assert(cycles <= 1023 && "Could not wait for more than 1023 cycles since the current hardware implementation has a 10 bit counter for this purpose.");
     	
@@ -182,7 +187,7 @@ Instruction genWAIT(uint cycles){ //min 1, max 1023
 	instr <<= 28;
 	instr |= cycles;
 
-	return instr;
+	insert(instr);
 }
 
 //! Generates an instruction to <b> change bus </b> which switches DQ
@@ -190,42 +195,42 @@ Instruction genWAIT(uint cycles){ //min 1, max 1023
 /*!
   \param \e dir is the new bus mode to be set. Can be BUSDIR.READ to switch to read
 mode, or BUSDIR.WRITE to switch to write mode.
-  \return The generated change bus direction instruction
+  \return Nothing.
 */
-Instruction genBUSDIR(BUSDIR dir){
+void InstructionSequence::genBUSDIR(BUSDIR dir){
 	Instruction instr = (uint)INSTR_TYPE::SET_BUS_DIR;
 	instr <<= 28;
 	instr |= (uint)dir;
 
-	return instr;
+	insert(instr);
 }
 
 //! Generates an instruction to indicate the <b> end of the instruction sequence </b>.
 /*!
-  \return Instruction used to indicate the end of the instruction sequence
+  \return Nothing.
 */
-Instruction genEND(){
-	return (Instruction)((uint)INSTR_TYPE::END_OF_INSTRS << 28);
+void InstructionSequence::genEND(){
+	insert((Instruction)((uint)INSTR_TYPE::END_OF_INSTRS << 28));
 }
 
 //! Generates an instruction to initiate DDR3 \b short-ZQ calibration.
 /*!
-  \return The generated short-ZQ instruction
+  \return Nothing.
 */
-Instruction genZQ(){
+void InstructionSequence::genZQ(){
 	Instruction instr = (uint)INSTR_TYPE::DDR;
 	instr <<= 32 - CMD_OFFSET - BANK_OFFSET - ROW_OFFSET;
 	instr |= 0x26; //to set CKE(1) CS(0) RAS(1) CAS(1) WE(0)
 	instr <<= BANK_OFFSET + ROW_OFFSET;
 
-	return instr;
+	insert(instr);
 }
 
 //! Generates a DDR3 \b refresh instruction.
 /*!
-  \return The generated refresh instruction
+  \return Nothing.
 */
-Instruction genREF(){
+void InstructionSequence::genREF(){
     Instruction instr = (uint)INSTR_TYPE::DDR;
     instr <<= 32 - CMD_OFFSET - BANK_OFFSET - ROW_OFFSET;
 
@@ -233,7 +238,7 @@ Instruction genREF(){
 
     instr <<= BANK_OFFSET + ROW_OFFSET;
 
-    return instr;
+    insert(instr);
 }
 
 //! Generates an instruction for configuring the auto-refresh mechanism.
@@ -243,14 +248,75 @@ Instruction genREF(){
 MC_CMD.SET_TREFI or MC_CMD.SET_TRFC. See DDR3 datasheet for the definition
 of tREFI and tRFC. Set tREFI to 0 to disable auto-refresh (disabled
 by default).  
-  \return The generated command for auto-refresh configuration
+  \return Nothing.
 */
-Instruction genREF_CONFIG(uint val, REGISTER r){
+void InstructionSequence::genREF_CONFIG(uint val, REGISTER r){
     assert(val < 0x10000000);
 
     Instruction instr = (uint) r;
     instr <<= 28;
     instr |= val;
 
-    return instr;
+    insert(instr);
+}
+
+fpga_t* SoftMCPlatform::current_fpga = nullptr;
+
+SoftMCPlatform::SoftMCPlatform(){}
+
+SoftMCPlatform::~SoftMCPlatform(){
+    //close all FPGAs
+    
+    for(int i = 0; i < open_fpgas.size(); i++){
+        fpga_close(open_fpgas[i]);
+    }
+}
+
+int SoftMCPlatform::init(){
+    
+    //query FPGAs available in the system
+    fpga_info_list info;
+
+	if (fpga_list(&info) != 0) {
+        return SOFTMC_NO_PLATFORM;
+    }
+
+
+    //populate the open_fpgas list
+	for (int i = 0; i < info.num_fpgas; i++) {
+        fpga_t* fpga = fpga_open(i);
+
+        if(!fpga)
+            return SOFTMC_ERR_OPEN_FPGA;
+
+        open_fpgas.push_back(fpga);
+    }
+
+    //assign the FPGA at index 0 as current FPGA
+    
+    current_fpga = open_fpgas[0];
+
+	return SOFTMC_SUCCESS;
+}
+
+int SoftMCPlatform::switchFPGA(const uint fpga_index){
+    
+    //check if the index if valid
+    if(fpga_index >= open_fpgas.size())
+        return SOFTMC_NO_SUCH_FPGA;
+
+    current_fpga = open_fpgas[fpga_index];
+
+    return SOFTMC_SUCCESS;
+}
+
+int SoftMCPlatform::reset(){
+   
+  fpga_reset(current_fpga);
+
+  return SOFTMC_SUCCESS; 
+}
+
+int SoftMCPlatform::receiveData(void* dst_buf, int num_words, long long timeout){
+    return fpga_recv(current_fpga, 0, dst_buf, num_words, timeout);
 }
