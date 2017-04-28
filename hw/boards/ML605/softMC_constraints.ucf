@@ -315,7 +315,7 @@ NET "ddr_dq[62]" LOC = E29;
 #Bank 35
 NET "ddr_dq[63]" LOC = F29;
 #Bank 25
-NET "ddr_addr[14]" LOC = C15;
+NET "ddr_addr[15]" LOC = C15;
 NET "ddr_addr[14]" LOC = D15;
 #Bank 25
 NET "ddr_addr[13]" LOC = J15;
