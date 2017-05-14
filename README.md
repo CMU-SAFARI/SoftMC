@@ -1,4 +1,4 @@
-# SoftMC v1.0
+# SoftMC v1.1
 
 SoftMC is an experimental FPGA-based memory controller design that could be used to develop tests for DDR3 SODIMMs. SoftMC currently supports only the *Xilinx ML605* board. Soon, we will port SoftMC on other popularly used boards (e.g., *Xilinx VC709*). 
 

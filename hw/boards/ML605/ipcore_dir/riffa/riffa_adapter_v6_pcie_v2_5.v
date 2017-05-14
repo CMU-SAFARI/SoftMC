@@ -172,7 +172,9 @@ module pcie_app_v6 #(
 	//Data read back Interface
 	input rdback_fifo_empty,
 	output rdback_fifo_rden,
-	input[DQ_WIDTH*4 - 1:0] rdback_data
+	input[DQ_WIDTH*4 - 1:0] rdback_data,
+	
+	input process_iseq
 );
 
 ////////////////////////////////////
@@ -461,6 +463,8 @@ softMC_pcie_app #(.C_PCI_DATA_WIDTH(C_DATA_WIDTH), .DQ_WIDTH(DQ_WIDTH)
 	.app_en(app_en),
 	.app_ack(app_ack),
 	.app_instr(app_instr),
+	
+	.process_iseq(process_iseq),
 	
 	//Data read back Interface
 	.rdback_fifo_empty(rdback_fifo_empty),

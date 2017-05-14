@@ -21,7 +21,6 @@ module instr_dispatcher #(parameter ROW_WIDTH = 15, BANK_WIDTH = 3, CKE_WIDTH = 
 	
 	//DFI Interface
 	// DFI Control/Address
-	input 											dfi_ready,
 	output[ROW_WIDTH-1:0]              dfi_address0,
 	output[ROW_WIDTH-1:0]              dfi_address1,
 	output[BANK_WIDTH-1:0]             dfi_bank0,
@@ -125,6 +124,8 @@ module instr_dispatcher #(parameter ROW_WIDTH = 15, BANK_WIDTH = 3, CKE_WIDTH = 
 		end
 	end
 	
+	//TODO: pipiline the decode stage for better timing
+	
 	always@* begin
 		io_config_strobe = LOW;
 		io_config = 2'b00;
@@ -164,7 +165,7 @@ module instr_dispatcher #(parameter ROW_WIDTH = 15, BANK_WIDTH = 3, CKE_WIDTH = 
 		cke0 = cke0_r;
 		cke1 = cke1_r;
 		
-		if(dfi_ready & (wait_cycles_r <= 10'd1)) begin
+		if(wait_cycles_r <= 10'd1) begin
 			if(en0) begin
 				casex(instr0[31:28])
 					`SET_BUSDIR: begin
@@ -231,7 +232,7 @@ module instr_dispatcher #(parameter ROW_WIDTH = 15, BANK_WIDTH = 3, CKE_WIDTH = 
 			ack0 = LOW;
 		end
 		
-		if(~(en0 & block_other_slot) & dfi_ready & (wait_cycles_r <= 10'd2)) begin
+		if(~(en0 & block_other_slot) & (wait_cycles_r <= 10'd2)) begin
 			if(en1) begin
 				casex(instr1[31:28])
 					`SET_BUSDIR: begin
@@ -378,4 +379,6 @@ module instr_dispatcher #(parameter ROW_WIDTH = 15, BANK_WIDTH = 3, CKE_WIDTH = 
 	
 	assign dfi_cke0 = cke0_r;
 	assign dfi_cke1 = cke1_r;
+
+
 endmodule

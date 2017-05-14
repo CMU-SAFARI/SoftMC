@@ -8,6 +8,8 @@ module instr_receiver (
 	
 	input dispatcher_ready,
 	
+	input rdback_fifo_empty,
+	
 	input app_en,
 	output reg app_ack,
 	input[31:0] app_instr,
@@ -18,9 +20,11 @@ module instr_receiver (
 	
 	output instr0_fifo_en,
 	output[31:0] instr0_fifo_data,
+	input instr0_fifo_full,
 	
 	output instr1_fifo_en,
 	output[31:0] instr1_fifo_data,
+	input instr1_fifo_full,
 	
 	output process_iseq
 );
@@ -38,6 +42,19 @@ reg sel_fifo = 1'b0;
 reg instr_en_ns, instr_en_r;
 reg[31:0] instr_ns, instr_r;
 
+wire is_any_fifo_full = instr0_fifo_full | instr1_fifo_full;
+
+//register rdback_fifo_empty for better timing
+reg rdback_fifo_empty_r = 1;
+always@(posedge clk) begin
+	if(rst) begin
+		rdback_fifo_empty_r <= 1;
+	end
+	else begin
+		rdback_fifo_empty_r <= rdback_fifo_empty;
+	end
+end
+
 always@* begin
 	process_iseq_ns = 1'b0;
 	
@@ -51,8 +68,8 @@ always@* begin
 	
 	case(state_r)
 		STATE_IDLE: begin
-			if(dispatcher_ready & ~process_iseq_r) begin
-				if(app_en) begin
+			if(dispatcher_ready & ~process_iseq_r & rdback_fifo_empty_r) begin //do not start processing a new Iseq 1) before completing execution of the current Iseq, and 2) transferring the data read from the DRAM to the host machine
+				if(app_en & ~is_any_fifo_full) begin
 					state_ns = STATE_APP;
 					instr_en_ns = app_en;
 					instr_ns = app_instr;
@@ -70,15 +87,17 @@ always@* begin
 		end //STATE_IDLE
 		
 		STATE_APP: begin
-			app_ack = 1'b1;
-			
-			instr_en_ns = app_en;
-			instr_ns = app_instr;
-			
-			if(instr_en_ns & (instr_ns[31:28] == `END_ISEQ)) begin
-				process_iseq_ns = 1'b1;
-				state_ns = STATE_IDLE;
-			end
+			if(~is_any_fifo_full) begin
+				app_ack = 1'b1;
+				
+				instr_en_ns = app_en;
+				instr_ns = app_instr;
+				
+				if(instr_en_ns & (instr_ns[31:28] == `END_ISEQ)) begin
+					process_iseq_ns = 1'b1;
+					state_ns = STATE_IDLE;
+				end
+			end //~is_any_fifo_full
 		end //STATE_APP
 		
 		STATE_MAINT: begin

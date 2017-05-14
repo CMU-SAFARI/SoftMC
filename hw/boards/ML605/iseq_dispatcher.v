@@ -21,7 +21,6 @@ module iseq_dispatcher #(parameter ROW_WIDTH = 15, BANK_WIDTH = 3, CKE_WIDTH = 1
 	
 	//DFI Interface
 	// DFI Control/Address
-	input 										dfi_ready,
 	input 										dfi_init_complete,
 	output [ROW_WIDTH-1:0]              dfi_address0,
 	output [ROW_WIDTH-1:0]              dfi_address1,
@@ -104,7 +103,7 @@ module iseq_dispatcher #(parameter ROW_WIDTH = 15, BANK_WIDTH = 3, CKE_WIDTH = 1
         .ready_out(instr1_ready)
     );
 	
-	
+	wire[9:0] read_counter;
 	//Command Dispatcher Instantiation
 	instr_dispatcher #(.ROW_WIDTH(ROW_WIDTH), .BANK_WIDTH(BANK_WIDTH), .CKE_WIDTH(CKE_WIDTH), 
 										.CS_WIDTH(CS_WIDTH), .nCS_PER_RANK(nCS_PER_RANK), .DQ_WIDTH(DQ_WIDTH)) i_instr_dispatcher(
@@ -124,7 +123,6 @@ module iseq_dispatcher #(parameter ROW_WIDTH = 15, BANK_WIDTH = 3, CKE_WIDTH = 1
 	//DFI Interface
 	
 	// DFI Control/Address
-	.dfi_ready(dfi_ready),
 	.dfi_address0(dfi_address0),
 	.dfi_address1(dfi_address1),
 	.dfi_bank0(dfi_bank0),

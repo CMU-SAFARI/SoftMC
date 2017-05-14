@@ -55,7 +55,9 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
 	//Data read back Interface
 	output rdback_fifo_empty,
 	input rdback_fifo_rden,
-	output[DQ_WIDTH*4 - 1:0] rdback_data
+	output[DQ_WIDTH*4 - 1:0] rdback_data,
+	
+	output process_iseq
 );
 	 
 	 //DFI constants
@@ -69,7 +71,7 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
 	 wire[31:0] instr1_fifo_data, instr1_fifo_out;
 	 wire instr1_fifo_rd_en;
 	 
-	 wire process_iseq;
+	 //wire process_iseq;
 	 
 	 //MAINTENANCE module
 	 localparam MAINT_PRESCALER_PERIOD = 200000;
@@ -113,9 +115,9 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
 			.clk(clk),
 			.rst(rst),
 			
-			.pr_rd_req(pr_rd_req),
-			.zq_req(zq_req),
-			.autoref_req(autoref_req),
+			.pr_rd_req(0/*pr_rd_req*/),
+			.zq_req(0/*zq_req*/),
+			.autoref_req(0/*autoref_req*/),
 			.cur_bus_dir(dfi_odt0 ? `BUS_DIR_WRITE : `BUS_DIR_READ),
 			
 			.maint_instr_en(maint_en),
@@ -150,6 +152,7 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
 		.rst(rst),
 		
 		.dispatcher_ready(~dispatcher_busy),
+		.rdback_fifo_empty(rdback_fifo_empty),
 		
 		.app_en(app_en),
 		.app_ack(app_ack),
@@ -161,9 +164,11 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
 		
 		.instr0_fifo_en(instr0_fifo_en),
 		.instr0_fifo_data(instr0_fifo_data),
+		.instr0_fifo_full(instr0_fifo_full),
 		
 		.instr1_fifo_en(instr1_fifo_en),
 		.instr1_fifo_data(instr1_fifo_data),
+		.instr1_fifo_full(instr1_fifo_full),
 		
 		.process_iseq(process_iseq)
 	);
@@ -211,7 +216,6 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
     .instr1_fifo_data(instr1_fifo_out), 
 	 
 	 //DFI Interface
-	 .dfi_ready(dfi_ready),
 	 .dfi_init_complete(dfi_init_complete),
     .dfi_address0(dfi_address0), 
     .dfi_address1(dfi_address1), 
@@ -278,16 +282,11 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
 	.dfi_rddata_valid(dfi_rddata_valid),
 	.dfi_rddata_valid_even(dfi_rddata_valid_even),
 	.dfi_rddata_valid_odd(dfi_rddata_valid_odd),
-	.dfi_clk_disable(read_capturer_dfi_clk_disable),
 	
 	//FIFO interface
-	.rdback_fifo_full(rdback_fifo_full),
-	.rdback_fifo_almost_full(rdback_fifo_almost_full),
 	.rdback_fifo_wren(rdback_fifo_wren),
 	.rdback_fifo_wrdata(rdback_fifo_wrdata)
 );
 
-	assign dfi_dram_clk_disable = read_capturer_dfi_clk_disable;
-	assign dfi_ready = ~dfi_dram_clk_disable;
 
 endmodule

@@ -80,7 +80,9 @@ module riffa_top_v6_pcie_v2_5 # (
 	//Data read back Interface
 	input rdback_fifo_empty,
 	output rdback_fifo_rden,
-	input[DQ_WIDTH*4 - 1:0] rdback_data
+	input[DQ_WIDTH*4 - 1:0] rdback_data,
+	
+	input process_iseq
 );
 
   wire                                        user_clk;
@@ -485,7 +487,8 @@ pcie_app_v6  #(
 	//Data read back Interface
 	.rdback_fifo_empty(rdback_fifo_empty),
 	.rdback_fifo_rden(rdback_fifo_rden),
-	.rdback_data(rdback_data)
+	.rdback_data(rdback_data),
+	.process_iseq(process_iseq)
 
 );
 

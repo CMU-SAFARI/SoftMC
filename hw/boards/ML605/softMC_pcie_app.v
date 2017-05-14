@@ -19,7 +19,7 @@ module softMC_pcie_app #(
 	output reg CHNL_TX, 
 	input CHNL_TX_ACK, 
 	output CHNL_TX_LAST, 
-	output reg [31:0] CHNL_TX_LEN, 
+	output [31:0] CHNL_TX_LEN, 
 	output [30:0] CHNL_TX_OFF, 
 	output [C_PCI_DATA_WIDTH-1:0] CHNL_TX_DATA, 
 	output reg CHNL_TX_DATA_VALID, 
@@ -28,6 +28,8 @@ module softMC_pcie_app #(
 	output  app_en,
 	input app_ack,
 	output[31:0] app_instr,
+	
+	input process_iseq,
 	
 	//Data read back Interface
 	input rdback_fifo_empty,
@@ -43,24 +45,26 @@ module softMC_pcie_app #(
  reg app_en_r;
  reg[C_PCI_DATA_WIDTH-1:0] rx_data_r;
  
- reg old_chnl_rx;
- reg pending_ack = 0;
+ localparam STATE_PENDING_ACK = 0;
+ localparam STATE_ACKED = 1;
+ reg state_rx_ack = STATE_PENDING_ACK;
  
- //always acknowledge transaction
  always@(posedge clk) begin
-		old_chnl_rx <= CHNL_RX;
-		
-		if(~old_chnl_rx & CHNL_RX)
-			pending_ack <= 1'b1;
-		
-		if(CHNL_RX_ACK)
-			CHNL_RX_ACK <= 1'b0;
-		else begin
-			if(pending_ack /*& app_ack*/) begin
+	
+	case(state_rx_ack)
+		STATE_PENDING_ACK: begin
+			if(CHNL_RX) begin
 				CHNL_RX_ACK <= 1'b1;
-				pending_ack <= 1'b0;
+				state_rx_ack <= STATE_ACKED;
 			end
 		end
+		STATE_ACKED: begin
+			CHNL_RX_ACK <= 1'b0;
+			
+			if(process_iseq)
+				state_rx_ack <= STATE_PENDING_ACK;
+		end
+	endcase
  end
  
  //register incoming data
@@ -76,69 +80,114 @@ module softMC_pcie_app #(
 assign app_en = app_en_r;
 assign app_instr = rx_data_r;
 
-//SEND DATA TO HOST
-localparam RECV_IDLE = 1'b0;
-localparam RECV_BUSY = 1'b1;
 
-reg sender_ack;
-reg[DQ_WIDTH*4 - 1:0] send_data_r;
+wire[DQ_WIDTH*4 - 1:0] data_to_send;
+wire data_to_send_available;
+reg data_to_send_consume;
 
-reg recv_state = RECV_IDLE;
-assign rdback_fifo_rden = (recv_state == RECV_IDLE);
-always@(posedge clk) begin
-	if(rst) begin
-		recv_state <= RECV_IDLE;
-	end
-	else begin
-		case(recv_state)
-			RECV_IDLE: begin
-				if(~rdback_fifo_empty) begin
-					send_data_r <= rdback_data;
-					recv_state <= RECV_BUSY;
-				end
-			end //RECV_IDLE
-			
-			RECV_BUSY: begin
-				if(sender_ack)
-					recv_state <= RECV_IDLE;
-			end //RECV_BUSY
-		endcase
-	end
-end
+
+pipe_reg #(.WIDTH(DQ_WIDTH*4)) i_rdback_fifo_preg(
+        .clk(clk),
+        .rst(rst),
+		  
+		  //producer interface
+		  .valid_in(~rdback_fifo_empty),
+        .data_in(rdback_data),
+        .ready_out(rdback_fifo_rden),
+		  
+		  //consumer interface
+        .ready_in(data_to_send_consume),
+        .valid_out(data_to_send_available),
+        .data_out(data_to_send)
+    );
 
 reg[2:0] sender_state = 0; //edit this if DQ_WIDTH or C_PCI_DATA_WIDTH changes
 reg[2:0] sender_state_ns;
 
+localparam SENDER_INIT_TX = 3'b100;
+localparam SENDER_STEP1 = 3'b000;
+localparam SENDER_END = 3'b011;
+
+assign CHNL_TX_LEN = 2048; 
+
+//NOTE: //seems like there is a bug (or an undocumented case) in RIFFA. 
+//After completing a transaction, CHNL_TX_DATA_REN remains high for a few cycles. 
+//We need to wait it to become LOW before initiating another transaction.
+
+reg[6:0] idle_counter = 0, idle_counter_ns;
+reg[7:0] sent_chunks_counter = 0, sent_chunks_counter_ns;
+
 always@* begin
-	sender_ack = 1'b0;
+	data_to_send_consume = 1'b0;
 	sender_state_ns = sender_state;
-	CHNL_TX = sender_state[2];
+	idle_counter_ns = idle_counter;
+	sent_chunks_counter_ns = sent_chunks_counter;
+	CHNL_TX = 0;
+	CHNL_TX_DATA_VALID = 0;
 	
-	CHNL_TX_LEN = 16;
-	
-	if(recv_state == RECV_BUSY) begin
-		CHNL_TX = 1'b1;
-		CHNL_TX_DATA_VALID = 1'b1;
+	case(sender_state)
+		SENDER_INIT_TX: begin
+			if(data_to_send_available & ~CHNL_TX_DATA_REN/*See the NOTE above*/) begin
+				sender_state_ns = SENDER_STEP1;
+				sent_chunks_counter_ns = 0;
+			end
+		end //SENDER_INIT_TX
 		
-		if(CHNL_TX_DATA_REN) begin
-			sender_state_ns = sender_state + 3'd1;
-			
-			if(sender_state[1:0] == 2'b11)
-				sender_ack = 1'b1;
+		//Each loop from SENDER_STEP1 to SENDER_END sends sizeof(data_to_send) words
+		SENDER_STEP1: begin //SENDER_IDLE
+			CHNL_TX = 1;
+			if(data_to_send_available) begin
+				CHNL_TX_DATA_VALID = 1;
+				idle_counter_ns = 0;
+				if(CHNL_TX_DATA_REN)
+					sender_state_ns = sender_state + 1;
+			end
+			else begin
+				idle_counter_ns = idle_counter + 1;
+				
+				if(idle_counter == 7'd127) //end a transaction (even when CHNL_TX_LEN is not reached) when not receiving data to sent for 128 cycles
+					sender_state_ns = SENDER_INIT_TX;
+			end
+		end // SENDER_STEP1
+		
+		SENDER_END: begin
+			CHNL_TX = 1;
+			CHNL_TX_DATA_VALID = 1;
+			if(CHNL_TX_DATA_REN) begin
+				sender_state_ns = SENDER_STEP1;
+				data_to_send_consume = 1'b1;
+				sent_chunks_counter_ns = sent_chunks_counter + 1;
+				
+				if(sent_chunks_counter == 8'd255)
+					sender_state_ns = SENDER_INIT_TX;
+			end
+		end //SENDER_END
+		
+		default: begin
+			CHNL_TX = 1'b1;
+			CHNL_TX_DATA_VALID = 1'b1;
+			if(CHNL_TX_DATA_REN) begin
+				sender_state_ns = sender_state + 1;
+			end
 		end
-	end
+		
+	endcase
 end
 
 always@(posedge clk) begin
 	if(rst) begin
 		sender_state <= 0;
+		idle_counter = 0;
+		sent_chunks_counter = 0;
 	end
 	else begin
 		sender_state <= sender_state_ns;
+		idle_counter = idle_counter_ns;
+		sent_chunks_counter = sent_chunks_counter_ns;
 	end
 end
 
 wire[7:0] offset = {6'd0, sender_state[1:0]} << 6;
-assign CHNL_TX_DATA = send_data_r[offset +: 64];
+assign CHNL_TX_DATA = data_to_send[offset +: 64];
 
 endmodule
