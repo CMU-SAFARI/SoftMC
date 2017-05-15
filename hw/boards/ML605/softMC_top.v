@@ -380,7 +380,7 @@ module softMC_top #
 	wire[DQ_WIDTH*4 - 1:0] rdback_data;
 	`endif //SIM
 	
-	wire process_iseq;
+	wire process_iseq_host;
 	
 	 softMC #(.TCQ(TCQ), .tCK(tCK), .nCK_PER_CLK(nCK_PER_CLK), .RANK_WIDTH(RANK_WIDTH), .ROW_WIDTH(ROW_WIDTH), .BANK_WIDTH(BANK_WIDTH), 
 								.CKE_WIDTH(CKE_WIDTH), .CS_WIDTH(CS_WIDTH), .nCS_PER_RANK(nCS_PER_RANK), .DQ_WIDTH(DQ_WIDTH)) i_softmc(
@@ -436,7 +436,7 @@ module softMC_top #
 	.rdback_fifo_rden(rdback_fifo_rden),
 	.rdback_data(rdback_data),
 	
-	.process_iseq(process_iseq)
+	.process_iseq_host(process_iseq_host)
 );
 
 `ifndef SIM
@@ -465,7 +465,7 @@ riffa_top_v6_pcie_v2_5 #(
 	.rdback_fifo_rden(rdback_fifo_rden),
 	.rdback_data(rdback_data),
 	
-	.process_iseq(process_iseq)
+	.process_iseq(process_iseq_host)
 );
 
 `endif //SIM

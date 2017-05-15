@@ -26,10 +26,12 @@ module instr_receiver (
 	output[31:0] instr1_fifo_data,
 	input instr1_fifo_full,
 	
-	output process_iseq
+	output process_iseq,
+	output process_iseq_host
 );
 
 reg process_iseq_r = 1'b0, process_iseq_ns;
+reg process_iseq_host_r = 1'b0, process_iseq_host_ns;
 
 localparam STATE_IDLE = 2'b00;
 localparam STATE_APP = 2'b01;
@@ -57,6 +59,7 @@ end
 
 always@* begin
 	process_iseq_ns = 1'b0;
+	process_iseq_host_ns = 1'b0;
 	
 	state_ns = state_r;
 	
@@ -95,6 +98,7 @@ always@* begin
 				
 				if(instr_en_ns & (instr_ns[31:28] == `END_ISEQ)) begin
 					process_iseq_ns = 1'b1;
+					process_iseq_host_ns = 1'b1;
 					state_ns = STATE_IDLE;
 				end
 			end //~is_any_fifo_full
@@ -133,6 +137,7 @@ always@(posedge clk) begin
 	else begin
 		state_r <= state_ns;
 		process_iseq_r <= process_iseq_ns;
+		process_iseq_host_r <= process_iseq_host_ns;
 		
 		instr_en_r <= instr_en_ns;
 		instr_r <= instr_ns;
@@ -145,5 +150,6 @@ always@(posedge clk) begin
 end
 
 assign process_iseq = process_iseq_r;
+assign process_iseq_host = process_iseq_host_r;
 
 endmodule

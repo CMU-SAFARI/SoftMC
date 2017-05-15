@@ -57,7 +57,7 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
 	input rdback_fifo_rden,
 	output[DQ_WIDTH*4 - 1:0] rdback_data,
 	
-	output process_iseq
+	output process_iseq_host
 );
 	 
 	 //DFI constants
@@ -71,7 +71,7 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
 	 wire[31:0] instr1_fifo_data, instr1_fifo_out;
 	 wire instr1_fifo_rd_en;
 	 
-	 //wire process_iseq;
+	 wire process_iseq;
 	 
 	 //MAINTENANCE module
 	 localparam MAINT_PRESCALER_PERIOD = 200000;
@@ -115,9 +115,9 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
 			.clk(clk),
 			.rst(rst),
 			
-			.pr_rd_req(0/*pr_rd_req*/),
-			.zq_req(0/*zq_req*/),
-			.autoref_req(0/*autoref_req*/),
+			.pr_rd_req(pr_rd_req),
+			.zq_req(zq_req),
+			.autoref_req(autoref_req),
 			.cur_bus_dir(dfi_odt0 ? `BUS_DIR_WRITE : `BUS_DIR_READ),
 			
 			.maint_instr_en(maint_en),
@@ -170,7 +170,8 @@ module softMC #(parameter TCQ = 100, tCK = 2500, nCK_PER_CLK = 2, RANK_WIDTH = 1
 		.instr1_fifo_data(instr1_fifo_data),
 		.instr1_fifo_full(instr1_fifo_full),
 		
-		.process_iseq(process_iseq)
+		.process_iseq(process_iseq),
+		.process_iseq_host(process_iseq_host)
 	);
 	
 	instr_fifo i_instr0_fifo (
