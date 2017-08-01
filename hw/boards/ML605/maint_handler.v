@@ -294,7 +294,7 @@ module maint_handler #(parameter CS_WIDTH = 1)(
 						maint_instr[`CS_OFFSET +: CS_WIDTH] = {{CS_WIDTH-1{HIGH}}, LOW};
 						maint_instr[`RAS_OFFSET] = LOW;
 						maint_instr[`CAS_OFFSET] = LOW;
-						maint_instr[`WE_OFFSET] = LOW;
+						maint_instr[`WE_OFFSET] = HIGH;
 						maint_instr[10] = HIGH; //10th bit of the address field, A[10]
 						
 						if(maint_ack)
