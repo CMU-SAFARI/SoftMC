@@ -1,3 +1,5 @@
+# [DRAM Bender](https://github.com/CMU-SAFARI/DRAM-Bender) (a.k.a. SoftMC v2) supersedes SoftMC. We urge you to use DRAM Bender instead of SoftMC.
+
 # SoftMC v1.0
 
 SoftMC is an experimental FPGA-based memory controller design that could be used to develop tests for DDR3 SODIMMs. SoftMC currently supports only the *Xilinx ML605* board. Soon, we will port SoftMC on other popularly used boards (e.g., *Xilinx VC709*). 
