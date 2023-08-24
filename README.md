@@ -1,4 +1,4 @@
-# [DRAM Bender](https://github.com/CMU-SAFARI/DRAM-Bender) (a.k.a. SoftMC v2) supersedes SoftMC. We urge you to use DRAM Bender instead of SoftMC.
+## [DRAM Bender](https://github.com/CMU-SAFARI/DRAM-Bender) (a.k.a. SoftMC v2) supersedes SoftMC. We suggest that you use DRAM Bender instead of SoftMC.
 
 # SoftMC v1.0
 
